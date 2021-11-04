@@ -1,0 +1,250 @@
+#include "crack.h"
+
+CrackCipherSystem::CrackCipherSystem()
+{
+    std::ifstream dict(DICT_NAME);
+
+    if (!dict.is_open()) {
+        throw std::logic_error("Dictionary not founded");
+    }
+    dict_text_ = GetFilteredStringFromFile(dict);
+
+    dictionary_words_ = SplitIntoWordsView(dict_text_);
+}
+
+std::string CrackCipherSystem::crack(std::filesystem::path path_to_file)
+{
+    std::ifstream source(path_to_file);
+    if (!source.is_open()) {
+        throw std::logic_error("File not founded");
+    }
+    source_text_ = GetFilteredStringFromFile(source);
+    encrypted_text_ = source_text_;
+
+    source_words_ = SplitIntoWordsView(source_text_);
+
+    ProcessGrams(1, 100);
+    ProcessGrams(2, 2);
+    //ProcessGrams(2, 5);
+    ProcessGrams(3, 1);
+
+    return encrypted_text_;
+}
+
+std::vector<std::string> CrackCipherSystem::GetSortedFreqsChars(StringFreqs& freqs)
+{
+    std::vector<std::pair<std::string, size_t>> str_to_num_vector;
+    str_to_num_vector.reserve(26);
+    std::transform(freqs.begin(), freqs.end(),
+        std::back_inserter(str_to_num_vector), [](auto& pair) {
+            return pair;
+        });
+    std::sort(str_to_num_vector.begin(), str_to_num_vector.end(), 
+        [](const auto& lhs, const auto& rhs) {
+            return lhs.second > rhs.second; //Mb < ?
+        });
+    std::vector<std::string> result;
+    result.reserve(str_to_num_vector.size());
+    std::transform(str_to_num_vector.begin(), str_to_num_vector.end(), std::back_inserter(result),
+        [](const auto& el) {
+            return el.first;
+        });
+    return result;
+}
+
+void CrackCipherSystem::ConversionLetters()
+{
+    int i = 0;
+    for (char& c : encrypted_text_) {
+        if (c >= 'a' && c <= 'z') {
+            c = source_to_dict_char_[source_text_[i]];
+        }
+        ++i;
+    }
+}
+
+double CrackCipherSystem::GetPercRecognizedWords() const
+{
+    size_t all_words = source_words_.size();
+    size_t recognized_word{ 0 };
+    for (const auto& word : source_words_) {
+        if (dictionary_words_.find(word) != dictionary_words_.find(word)) {
+            ++recognized_word;
+        }
+    }
+    return recognized_word / (all_words + 0.0);
+}
+
+
+void CrackCipherSystem::ProcessGrams(int max_len, int max_num_str)
+{
+    //долго работает
+    StringFreqs dict_freqs   = CountGrams(dict_text_, max_len);
+    StringFreqs source_freqs = CountGrams(encrypted_text_, max_len);
+    auto dict_sorted_freqs   = GetSortedFreqsChars(dict_freqs);
+    auto source_sorted_freqs = GetSortedFreqsChars(source_freqs);
+
+    int changed_word{ 0 };
+
+    if (max_len == 1) {
+        for (size_t i = 0; i < source_sorted_freqs.size(); ++i) {
+            source_to_dict_char_[source_sorted_freqs[i][0]] = dict_sorted_freqs[i][0];
+            dict_to_source_char_[dict_sorted_freqs[i][0]] = source_sorted_freqs[i][0];
+        }
+    }
+    else {
+        for (size_t i = 0; i < source_sorted_freqs.size(); ++i) {
+            for (int j = 0; j < max_len; ++j) {
+                if (source_sorted_freqs[i][j] != dict_sorted_freqs[i][j]) {
+                    //Поменять dict
+                    char temp1 = dict_to_source_char_.at(dict_sorted_freqs[i][j]);
+                    char temp2 = dict_to_source_char_.at(source_sorted_freqs[i][j]);
+                    std::swap(source_to_dict_char_[temp1], source_to_dict_char_[temp2]);
+                    ConversionLetters();
+                    //Нужно изменить source_sorted_freqs, не пересчитывая
+                    source_freqs = CountGrams(encrypted_text_, max_len);
+                    source_sorted_freqs = GetSortedFreqsChars(source_freqs);
+                    i = -1;
+                    ++changed_word;
+                    if (changed_word == max_num_str) return;
+                    break;
+                }
+            }
+        }
+    }
+    ConversionLetters();
+}
+
+std::string CrackCipherSystem::GetFilteredStringFromFile(std::istream& in)
+{
+    std::string result;
+    std::string str;
+    for (; in >> str;) {
+        for (char& c : str) {
+            if (c >= 'A' && c <= 'Z') {
+                c += 32;
+            }
+            if (c >= 'a' && c <= 'z') {
+                result += c;
+            }
+        }
+        result += ' ';
+    }
+    return result;
+}
+
+
+void CrackCipherSystem::Correction(int len, int max_diff)
+{
+    ////std::set<char> changed_chars;
+    //for (auto& dict_word : dictionary_info_.words) {
+    //    for (auto& source_word : source_text_info_.words) {
+    //        if (dict_word.size() == len && source_word.size() == dict_word.size()) {
+    //            int num_of_diff = 0;
+    //            std::vector<std::pair<char, char>> change_char;
+    //            for (size_t i = 0; i < dict_word.size(); ++i) {
+    //                if (source_word[i] != dict_word[i]) {
+    //                    ++num_of_diff;
+    //                    change_char.push_back(std::make_pair(source_word[i], dict_word[i]));
+    //                    if (num_of_diff > max_diff) break;
+    //                }
+    //            }
+    //            if (num_of_diff <= max_diff) {
+    //                for (const auto& [c1, c2] : change_char) {
+    //                    //if (changed_chars.find(c1) != changed_chars.end()) {
+    //                    //    continue;
+    //                    //}
+    //                    //changed_chars.insert(c1);
+    //                    letter_conversion_[c1] = c2;
+
+    //                }
+    //                ConversionLetters();
+    //                return;
+    //            }
+    //        }
+    //    }
+    //}
+}
+
+
+
+=====================================================================================================================================
+double new_perc_rec_words = 0.0;
+    auto perc_recognized_words = GetPercRecognizedWords();
+    FreqsAnalysis();
+    auto old_conv = converting_letters_;
+    new_perc_rec_words = GetPercRecognizedWords();
+
+    size_t max_len = 2;
+    size_t max_diff = 2;
+    //Try to analisis digrams and trigrams
+    while (new_perc_rec_words <= perc_recognized_words || new_perc_rec_words <= 0.07) {
+        if (new_perc_rec_words < perc_recognized_words) {
+            converting_letters_ = old_conv;
+            ConvertLetters();
+        }
+        NGramAnalysis(1, max_diff, 2, max_len);
+        new_perc_rec_words = GetPercRecognizedWords();
+        if (new_perc_rec_words > perc_recognized_words) {
+            perc_recognized_words = new_perc_rec_words;
+        }
+        ++max_len;
+        if (max_len > 4) break;
+    }
+    perc_recognized_words = new_perc_rec_words;
+    old_conv = converting_letters_;
+    //Analysis digrams, trigrams and fourgrams with 1 difference
+    NGramAnalysis(10);
+    new_perc_rec_words = GetPercRecognizedWords();
+    if (new_perc_rec_words < perc_recognized_words) {
+        converting_letters_ = old_conv;
+        ConvertLetters();
+    }
+    //????
+    size_t len = 7;
+    max_diff = 1;
+    double min_perc_rec_words = 0.7;
+    while (true) {
+        Correction(len, 1);
+        new_perc_rec_words = GetPercRecognizedWords();
+        if (new_perc_rec_words >= perc_recognized_words && new_perc_rec_words >= min_perc_rec_words) {
+            perc_recognized_words = new_perc_rec_words;
+            old_conv = converting_letters_;
+            ++len;
+            max_diff = 1;
+            if (len == 10) break; //correct words with length 7, 8 and 9
+        }
+        else {
+            converting_letters_ = old_conv;
+            ConvertLetters();
+            --len;
+            if (len == 4) {
+                ++max_diff;
+                ++len;
+            }
+            if (max_diff > 3) {
+                min_perc_rec_words -= 0.2;
+                max_diff = 1;
+            }
+        }
+    }
+
+================================================================================
+for (size_t k = 0; k < 2/*maybe more?*/; ++k) {
+                size_t num_diff{ 0 };
+                for (size_t j = 0; j < len; ++j) {
+                    if (dict_freqs[i][j] != crypted_text_freqs[i][j]) {
+                        ++num_diff;
+                    }
+                }
+                if (num_diff > 0 && num_diff <= max_diff) {
+                    for (size_t j = 0; j < len; ++j) {
+                        if (dict_freqs[i][j] != crypted_text_freqs[i][j]) {
+                            char changed_char = reverse_conv_letters_.at(crypted_text_freqs[i][j]);
+                            if (changed_chars.find(changed_char) == changed_chars.end()) {
+                                changed_chars[changed_char] = dict_freqs[i][j];
+                            }
+                        }
+                    }
+                }
+            }
