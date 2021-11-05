@@ -9,35 +9,7 @@ using namespace caesar_cipher;
 
 CaesarCipher::CaesarCipher(AlphabetType type)
 {
-    switch (type)
-    {
-    case AlphabetType::ENGLISH_FULL:
-        num_chars_ = 'z' - 'A' + 1;
-        first_char_ = 'A';
-        break;
-    case AlphabetType::ENGLISH_LOWER:
-        num_chars_ = 'z' - 'a' + 1;
-        first_char_ = 'a';
-        break;
-    case AlphabetType::ENGLISH_UPPER:
-        num_chars_ = 'Z' - 'A' + 1;
-        first_char_ = 'A';
-        break;
-    case AlphabetType::RUSSIAN_FULL:
-        num_chars_ = 'ÿ' - 'À' + 1;
-        first_char_ = 'À';
-        break;
-    case AlphabetType::RUSSIAN_LOWER:
-        num_chars_ = 'ÿ' - 'à' + 1;
-        first_char_ = 'à';
-        break;
-    case AlphabetType::RUSSIAN_UPPER:
-        num_chars_ = 'ß' - 'À' + 1;
-        first_char_ = 'À';
-        break;
-    default:
-        break;
-    }
+    alphabet_info_ = AlphabetInfo(type);
 }
 
 std::string CaesarCipher::decrypt(std::string_view source, size_t k, std::string_view keyword) const
@@ -45,12 +17,12 @@ std::string CaesarCipher::decrypt(std::string_view source, size_t k, std::string
     std::string decrypt_str;
     std::string crypt_alphabet = GetCryptAlphabet(k, keyword);
     std::unordered_map<char, char> chars_map;
-    auto i = first_char_;
+    auto i = alphabet_info_.first_char;
     for (char c : crypt_alphabet) {
         chars_map[c] = i++;
     }
     for (char i : source) {
-        if (i < first_char_ || i > first_char_ + (char)num_chars_) {
+        if (i < alphabet_info_.first_char || i > alphabet_info_.last_char) {
             decrypt_str.push_back(i);
             continue;
         }
@@ -63,11 +35,11 @@ std::string CaesarCipher::crypt(std::string_view source, size_t k, std::string_v
     std::string encrypted_str;
     std::string crypt_alphabet = GetCryptAlphabet(k, key);
     for (char i : source) {
-        if (i < first_char_ || i > first_char_ + (char)num_chars_) {
+        if (i < alphabet_info_.first_char || i > alphabet_info_.last_char) {
             encrypted_str.push_back(i);
             continue;
         }
-        auto pos = i - first_char_;
+        auto pos = i - alphabet_info_.first_char;
         encrypted_str.push_back(crypt_alphabet[pos]);
     }
     return encrypted_str;
@@ -77,21 +49,21 @@ std::string CaesarCipher::GetCryptAlphabet(size_t k, std::string_view key) const
     std::string keyword;
     keyword.reserve(keyword.size());
     for (char i : key) {
-        if (i < first_char_ || i > first_char_ + (char)num_chars_ || 
+        if (i < alphabet_info_.first_char || i > alphabet_info_.last_char || 
             keyword.find(i) != std::string::npos) {
             continue;
         }
         keyword.push_back(i);
     }
     std::string alphabet;
-    alphabet.reserve(num_chars_);
-    for (char i = first_char_; i < first_char_ + (char)num_chars_; ++i) {
+    alphabet.reserve(alphabet_info_.num_chars);
+    for (char i = alphabet_info_.first_char; i <= alphabet_info_.last_char; ++i) {
         if (key.find(i) != std::string::npos) {
             continue;
         }
         alphabet.push_back(i);
     }
-    std::string result(num_chars_, ' ');
+    std::string result(alphabet_info_.num_chars, ' ');
     for (size_t i = k; i < k + keyword.size(); ++i) {
         result[i] = keyword[i - k];
     }

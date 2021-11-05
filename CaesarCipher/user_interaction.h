@@ -32,6 +32,8 @@ namespace user_interaction {
 
 		std::filesystem::path GetPath();
 		std::optional<std::string> GetTextFromFile(const std::filesystem::path& path);
+
+		void ChooseAlphabet();
 	};
 } //namespace iser_interaction
 

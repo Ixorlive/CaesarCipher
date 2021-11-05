@@ -5,6 +5,7 @@
 #include <fstream>
 #include <unordered_map>
 #include <filesystem>
+#include "CaesarCipher.h"
 
 namespace caesar_cipher {
 
@@ -44,7 +45,7 @@ namespace caesar_cipher {
 		std::unordered_map<char, char> reverse_conv_letters_;
 
 		std::vector<std::string> GetSortedFreqsChars(std::string& str_analyz, int len_gram) const;
-
+		//unused for a while
 		double GetPercRecognizedWords() const;
 		//Frequency analysis every symbol on dictionary and crypt text
 		void FreqsAnalysis();
@@ -52,7 +53,7 @@ namespace caesar_cipher {
 		void NGramAnalysis(size_t max_words = 10, size_t max_diff = 1, size_t min_len = 2, size_t max_len = 4);
 		//Convertion letters in decrypt_text
 		void ConvertLetters();
-		//len - length of word, max_diff = maximum difference in words
+		//len - length of word, max_diff = maximum difference between words
 		void Correction(int len, int max_diff);
 
 		void AlterConvertingLetters(std::unordered_map<char, char>& changed_chars);

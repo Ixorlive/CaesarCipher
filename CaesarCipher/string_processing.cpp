@@ -31,8 +31,17 @@ CrackCipherSystem::Words SplitIntoWordsView(std::string_view text)
 
 void toLower(std::string& str) {
     for (char& i : str) {
-        if (i >= 'A' && i <= 'Z') {
+        if (i >= 'A' && i <= 'Z' || i >= 'À' && i <= 'ß') {
             i += 32;
+        }
+    }
+}
+
+void toUpper(std::string& str)
+{
+    for (char& i : str) {
+        if (i >= 'a' && i <= 'z' || i >= 'à' && i <= 'ÿ') {
+            i -= 32;
         }
     }
 }
@@ -55,11 +64,16 @@ CrackCipherSystem::StringFreqs CountGrams(std::string& text, int len)
     return result;
 }
 
-std::string GetLowerTextFromFile(std::istream& in)
+std::string GetStringFromFile(std::istream& in, TypeText type)
 {
     std::string result((std::istreambuf_iterator<char>(in)),
         std::istreambuf_iterator<char>());
-
-    toLower(result);
+    if (type == TypeText::TO_LOWER) {
+        toLower(result);
+    }
+    else if (type == TypeText::TO_UPPER) {
+        toUpper(result);
+    }
+    
     return result;
 }

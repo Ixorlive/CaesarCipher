@@ -7,6 +7,7 @@ void UserMenu::show()
 {
 	char q = 'n';
 	while (q != 'Q' && q != 'q') {
+		system("cls");
 		std::cout << "Input command: "
 			<< "\n\tC - encrypt text from file"
 			<< "\n\tD - decrypt text from file"
@@ -20,7 +21,7 @@ void UserMenu::show()
 			std::cout << "Unknown command, try again:\n";
 			std::cin >> command;
 		}
-		Sleep(400);
+		Sleep(200);
 		system("cls");
 		switch (command)
 		{
@@ -39,7 +40,7 @@ void UserMenu::show()
 		default:
 			return;
 		}
-		system("cls");
+		std::cout << "\n\n==============================================\n";
 		std::cout << "=== Input Q for exit or any for continue ===\n";
 		std::cin >> q;
 	}
@@ -47,6 +48,7 @@ void UserMenu::show()
 
 void UserMenu::EncryptText()
 {
+	//ChooseAlphabet();
 	auto text = GetTextFromFile(GetPath());
 	if (!text.has_value()) {
 		return;
@@ -58,6 +60,7 @@ void UserMenu::EncryptText()
 
 void UserMenu::DecryptText()
 {
+	//ChooseAlphabet();
 	auto text = GetTextFromFile(GetPath());
 	if (!text.has_value()) {
 		return;
@@ -105,8 +108,44 @@ std::optional<std::string> UserMenu::GetTextFromFile(const std::filesystem::path
 		}
 	}
 	//read all text
-	std::string str = GetLowerTextFromFile(file);
+	std::string str = GetStringFromFile(file);
 	return str;
+}
+
+void user_interaction::UserMenu::ChooseAlphabet()
+{
+	std::cout << "Choose Alphabet: " <<
+		"\n\t 1 - English lower (default)" <<
+		"\n\t 2 - English Full" <<
+		"\n\t 3 - English upper" <<
+		"\n\t 4 - Russian Full" <<
+		"\n\t 5 - Russian lower" <<
+		"\n\t 6 - Russian upper\n";
+	char choose;
+	std::cin >> choose;
+	AlphabetType type;
+	switch (choose) {
+		case '2':
+			type = AlphabetType::ENGLISH_FULL;
+			break;
+		case '3':
+			type = AlphabetType::ENGLISH_UPPER;
+			break;
+		case '4':
+			type = AlphabetType::RUSSIAN_FULL;
+			break;
+		case '5':
+			type = AlphabetType::RUSSIAN_LOWER;
+			break;
+		case '6':
+			type = AlphabetType::RUSSIAN_UPPER;
+			break;
+		case '1':
+		default:
+			type = AlphabetType::ENGLISH_LOWER;
+			break;
+	}
+	cipher_.SetAlphabet(type);
 }
 
 std::pair<int, std::string> UserMenu::GetKeys()
@@ -117,6 +156,12 @@ std::pair<int, std::string> UserMenu::GetKeys()
 	std::cin >> k;
 	std::cout << "input keyword:\n";
 	std::cin >> keyword;
-	toLower(keyword);
+	auto type = cipher_.GetAlphabetType();
+	if (type == AlphabetType::ENGLISH_LOWER || type == AlphabetType::RUSSIAN_LOWER) {
+		toLower(keyword);
+	}
+	else if (type == AlphabetType::ENGLISH_UPPER || type == AlphabetType::RUSSIAN_UPPER) {
+		toUpper(keyword);
+	}
 	return { k, keyword };
 }

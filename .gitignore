@@ -361,3 +361,6 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+CaesarCipher.sln
+/CaesarCipher/rus_text.txt
+/CaesarCipher/sample.txt

@@ -19,30 +19,78 @@ namespace caesar_cipher {
         RUSSIAN_UPPER
     };
 
+    struct AlphabetInfo {
+        AlphabetType type = AlphabetType::ENGLISH_LOWER;
+        char first_char = 'a';
+        char last_char = 'z';
+        size_t num_chars = 'a' - 'z' + 1;
+        AlphabetInfo() = default;
+
+        AlphabetInfo(AlphabetType al_type) {
+            SetAlphabet(al_type);
+        }
+
+        void SetAlphabet(AlphabetType al_type) {
+            type = al_type;
+            switch (al_type)
+            {
+            case AlphabetType::ENGLISH_FULL:
+                num_chars = 'z' - 'A' + 1;
+                first_char = 'A';
+                last_char = 'z';
+                break;
+            case AlphabetType::ENGLISH_LOWER:
+                num_chars = 'z' - 'a' + 1;
+                first_char = 'a';
+                last_char = 'z';
+                break;
+            case AlphabetType::ENGLISH_UPPER:
+                num_chars = 'Z' - 'A' + 1;
+                first_char = 'A';
+                last_char = 'Z';
+                break;
+            case AlphabetType::RUSSIAN_FULL:
+                num_chars = 'ÿ' - 'À' + 1;
+                first_char = 'À';
+                last_char = 'ÿ';
+                break;
+            case AlphabetType::RUSSIAN_LOWER:
+                num_chars = 'ÿ' - 'à' + 1;
+                first_char = 'à';
+                last_char = 'ÿ';
+                break;
+            case AlphabetType::RUSSIAN_UPPER:
+                num_chars = 'ß' - 'À' + 1;
+                first_char = 'À';
+                last_char = 'ß';
+                break;
+            default:
+                break;
+            }
+        }
+    };
+
     class CaesarCipher {
     public:
 
         CaesarCipher() = default;
-
-        CaesarCipher(size_t num_chars, char first_char)
-            : num_chars_(num_chars), first_char_(first_char) {}
 
         CaesarCipher(AlphabetType type);
 
         std::string crypt(std::string_view source, size_t k, std::string_view key) const;
         std::string decrypt(std::string_view source, size_t k, std::string_view keyword) const;
 
-        void SetNumChars(size_t num) {
-            num_chars_ = num;
+        void SetAlphabet(AlphabetType type) {
+            alphabet_info_ = AlphabetType(type);
         }
-        void SetFirstChar(char c) {
-            first_char_ = c;
+
+        AlphabetType GetAlphabetType() const {
+            return alphabet_info_.type;
         }
     private:
         std::string GetCryptAlphabet(size_t k, std::string_view keyword) const;
 
-        size_t num_chars_ = 'Z' - 'A' + 1;
-        char first_char_ = 'A';
+        AlphabetInfo alphabet_info_;
     };
 } //namespace caesar_cipher
 

@@ -11,7 +11,7 @@ CrackCipherSystem::CrackCipherSystem(std::filesystem::path path)
     if (!dict.is_open()) {
         throw std::logic_error("Dictionary not founded");
     }
-    dict_text_ = GetLowerTextFromFile(dict);
+    dict_text_ = GetStringFromFile(dict, TypeText::TO_LOWER);
 
     dictionary_words_ = SplitIntoWordsView(dict_text_);
 }
@@ -22,7 +22,7 @@ std::string CrackCipherSystem::crack(std::filesystem::path path_to_file)
     if (!source.is_open()) {
         throw std::logic_error("File not founded");
     }
-    crypt_text_ = GetLowerTextFromFile(source);
+    crypt_text_ = GetStringFromFile(source, TypeText::TO_LOWER);
     decrypt_text_ = crypt_text_;
 
     source_words_ = SplitIntoWordsView(decrypt_text_);
@@ -78,9 +78,9 @@ void CrackCipherSystem::NGramAnalysis(size_t max_words, size_t max_diff, size_t 
                             }
                         }
                     }
-                    k = 2;
+                    break;
                 }
-                if (num_diff == 0) k = 2;
+                if (num_diff == 0) break;
             }
         }
         if (!changed_chars.empty()) {
@@ -103,7 +103,7 @@ std::vector<std::string> CrackCipherSystem::GetSortedFreqsChars(std::string& str
 {
     StringFreqs freqs = CountGrams(str_analyz, len_gram);
     std::vector<std::pair<std::string, size_t>> str_to_num_vector;
-    str_to_num_vector.reserve(26);
+    str_to_num_vector.reserve('z' - 'a' + 1);
     std::transform(freqs.begin(), freqs.end(),
         std::back_inserter(str_to_num_vector), [](auto& pair) {
             return pair;
