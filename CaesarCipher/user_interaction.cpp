@@ -1,26 +1,31 @@
 #include "user_interaction.h"
 #include "string_processing.h"
+#include <limits>
 
 using namespace user_interaction;
 
 void UserMenu::show()
 {
-	char q = 'n';
-	while (q != 'Q' && q != 'q') {
+	char q = 'c';
+	while (q == 'C' || q == 'c') {
 		system("cls");
 		std::cout << "Input command: "
 			<< "\n\tC - encrypt text from file"
 			<< "\n\tD - decrypt text from file"
-			<< "\n\tT - try to decrypt text from file using Frequency Analysis\n";
+			<< "\n\tT - try to decrypt text from file using Frequency Analysis"
+			<< "\n\tQ - quit\n";
 		char command;
 		std::cin >> command;
 
 		while (command != 'C' && command != 'c' &&
 			command != 'T' && command != 't' &&
-			command != 'D' && command != 'd') {
+			command != 'D' && command != 'd' && 
+			command != 'Q' && command != 'q') {
 			std::cout << "Unknown command, try again:\n";
+			ClearCin();
 			std::cin >> command;
 		}
+		ClearCin();
 		Sleep(200);
 		system("cls");
 		switch (command)
@@ -33,6 +38,9 @@ void UserMenu::show()
 		case 'd':
 			DecryptText();
 			break;
+		case 'Q':
+		case 'q':
+			return;
 		case 'T':
 		case 't':
 			CrackText();
@@ -40,8 +48,9 @@ void UserMenu::show()
 		default:
 			return;
 		}
-		std::cout << "\n\n==============================================\n";
-		std::cout << "=== Input Q for exit or any for continue ===\n";
+		std::cout << "\n\n=============================================\n";
+		std::cout << "Input |C| or |c| to restart programm or any to exit";
+		std::cout << "\n=============================================\n";
 		std::cin >> q;
 	}
 }
@@ -86,15 +95,15 @@ void UserMenu::CrackText()
 	output_file << crack_system_->crack(path);;
 }
 
-std::filesystem::path UserMenu::GetPath()
+std::filesystem::path UserMenu::GetPath() const
 {
 	std::string path;
-	std::cout << "Input path to file:\n";
+	std::cout << std::string(50, '*') << "\n\tInput path to file\n";
 	std::cin >> path;
 	return path;
 }
 
-std::optional<std::string> UserMenu::GetTextFromFile(const std::filesystem::path& path)
+std::optional<std::string> UserMenu::GetTextFromFile(const std::filesystem::path& path) const
 {
 	std::ifstream file (path);
 	int try_num = 0;
@@ -148,13 +157,19 @@ void user_interaction::UserMenu::ChooseAlphabet()
 	cipher_.SetAlphabet(type);
 }
 
-std::pair<int, std::string> UserMenu::GetKeys()
+void user_interaction::UserMenu::ClearCin() const
+{
+	std::cin.clear();
+	std::cin.ignore(INT_MAX, '\n');
+}
+
+std::pair<int, std::string> UserMenu::GetKeys() const
 {
 	int k;
 	std::string keyword;
-	std::cout << "input k (shift)\n";
+	std::cout << "\n\tInput k (shift)\n";
 	std::cin >> k;
-	std::cout << "input keyword:\n";
+	std::cout << "\n\tInput keyword:\n";
 	std::cin >> keyword;
 	auto type = cipher_.GetAlphabetType();
 	if (type == AlphabetType::ENGLISH_LOWER || type == AlphabetType::RUSSIAN_LOWER) {

@@ -158,6 +158,7 @@
   <ItemGroup>
     <Text Include="crack_cpp.txt" />
     <Text Include="crack_h.txt" />
+    <Text Include="try_to_optimize.txt" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

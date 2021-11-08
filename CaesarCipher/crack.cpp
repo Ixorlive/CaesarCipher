@@ -3,7 +3,7 @@
 
 using namespace caesar_cipher;
 
-CrackCipherSystem::CrackCipherSystem(std::filesystem::path path) 
+CrackCipherSystem::CrackCipherSystem(std::filesystem::path path)
     : dict_path_(path)
 {
     std::ifstream dict(dict_path_);
@@ -26,12 +26,38 @@ std::string CrackCipherSystem::crack(std::filesystem::path path_to_file)
     decrypt_text_ = crypt_text_;
 
     source_words_ = SplitIntoWordsView(decrypt_text_);
-    //====
+    // We find the most frequent letters in the dictionary and in ciphertext and set converting_letters_
+    // For example: Most freqs 
+    //  Dict   Crypt
+    //    e ->  t   : converting_letters_['t'] = 'e'
+    //    t ->  z   : converting_letters_['z'] = 't'
+    //    etc
     FreqsAnalysis();
-    NGramAnalysis(10);
-
+    double perc = GetPercRecognizedWords();
+    // If the percentage of recognized words is small, 
+    // we try to analyze the most frequent digram in the dictionary and in the source
+    if (perc <= 0.05) {
+        NGramAnalysis(1, 2, 2, 2);
+    }
+    // Like FreqsAnalysis() but we analyze the digrams, trigrams and four-gram (google n-grams)
+    NGramAnalysis(5);
+    double new_perc = GetPercRecognizedWords();
+    // analyze the words in the ciphertext that differ by one letter from the dictionary
+    // try to analyze words with len = 7 and stop when len will be equal to 9 (analisis more len is useless)
     for (size_t i = 7; i < 10; ++i) {
+        perc = new_perc;
         Correction(i, 1);
+        // If nothing has changed or has become worse, we will try to analyze words with a shorter length 
+        // or words that differ by more than 1 letter
+        if (GetPercRecognizedWords() <= perc) {
+            for (size_t j = 5; j < i; ++j) {
+                Correction(j, 1);
+            }
+            new_perc = GetPercRecognizedWords();
+            if (new_perc <= perc) {
+                Correction(i, 2);
+            }
+        }
     }
 
     return decrypt_text_;
@@ -39,8 +65,8 @@ std::string CrackCipherSystem::crack(std::filesystem::path path_to_file)
 
 void CrackCipherSystem::FreqsAnalysis()
 {
-    auto dict_freqs = GetSortedFreqsChars(dict_text_, 1);
-    auto crypted_text_freqs = GetSortedFreqsChars(crypt_text_, 1);
+    auto dict_freqs = GetSortedFreqsNGrams(dict_text_, 1);
+    auto crypted_text_freqs = GetSortedFreqsNGrams(crypt_text_, 1);
 
     for (size_t i = 0; i < crypted_text_freqs.size(); ++i) {
         converting_letters_[crypted_text_freqs[i][0]] = dict_freqs[i][0];
@@ -56,9 +82,9 @@ void CrackCipherSystem::NGramAnalysis(size_t max_words, size_t max_diff, size_t 
         min_len = 2;
     }
     for (size_t len = min_len; len <= max_len; ++len) {
-        auto dict_freqs = GetSortedFreqsChars(dict_text_, len);
-        auto crypted_text_freqs = GetSortedFreqsChars(decrypt_text_, len);
-        
+        auto dict_freqs = GetSortedFreqsNGrams(dict_text_, len);
+        auto crypted_text_freqs = GetSortedFreqsNGrams(decrypt_text_, len);
+
         std::unordered_map<char, char> changed_chars;
 
         for (size_t i = 0; i < max_words; ++i) {
@@ -84,8 +110,7 @@ void CrackCipherSystem::NGramAnalysis(size_t max_words, size_t max_diff, size_t 
             }
         }
         if (!changed_chars.empty()) {
-            AlterConvertingLetters(changed_chars);
-            ConvertLetters();
+            TryToChange(changed_chars);
         }
     }
 }
@@ -99,7 +124,7 @@ void CrackCipherSystem::ConvertLetters()
     }
 }
 
-std::vector<std::string> CrackCipherSystem::GetSortedFreqsChars(std::string& str_analyz, int len_gram) const
+std::vector<std::string> CrackCipherSystem::GetSortedFreqsNGrams(std::string& str_analyz, int len_gram) const
 {
     StringFreqs freqs = CountGrams(str_analyz, len_gram);
     std::vector<std::pair<std::string, size_t>> str_to_num_vector;
@@ -143,10 +168,10 @@ void CrackCipherSystem::Correction(int len, int max_diff)
 {
     std::string check_from(len, 'a');
     std::string check_to(len + 1, 'a');
-    auto it_from_dict   = dictionary_words_.lower_bound(check_from);
-    auto it_to_dict     = dictionary_words_.lower_bound(check_to);
+    auto it_from_dict = dictionary_words_.lower_bound(check_from);
+    auto it_to_dict = dictionary_words_.lower_bound(check_to);
     auto it_from_source = source_words_.lower_bound(check_from);
-    auto it_to_source   = source_words_.lower_bound(check_to);
+    auto it_to_source = source_words_.lower_bound(check_to);
     std::unordered_map<char, char> changed_chars;
     for (; it_from_dict != it_to_dict; ++it_from_dict) {
         auto it = it_from_source;
@@ -158,7 +183,7 @@ void CrackCipherSystem::Correction(int len, int max_diff)
                     if (num_of_diff > max_diff) break;
                 }
             }
-            if (num_of_diff <= max_diff) {
+            if (num_of_diff <= max_diff && num_of_diff != 0 ) {
                 for (size_t i = 0; i < it_from_dict->size(); ++i) {
                     if (it->at(i) != it_from_dict->at(i)) {
                         char changed_char = reverse_conv_letters_.at(it->at(i));
@@ -167,17 +192,16 @@ void CrackCipherSystem::Correction(int len, int max_diff)
                         }
                     }
                 }
-                AlterConvertingLetters(changed_chars);
-                ConvertLetters();
+                TryToChange(changed_chars);
                 changed_chars.clear();
                 break;
             }
-            
+
         }
     }
 }
 
-void CrackCipherSystem::AlterConvertingLetters(std::unordered_map<char, char>& changed_chars)
+void CrackCipherSystem::AlterDectyptText(std::unordered_map<char, char>& changed_chars)
 {
     for (const auto& [from, to] : changed_chars) {
         char c = converting_letters_[from];
@@ -191,6 +215,18 @@ void CrackCipherSystem::AlterConvertingLetters(std::unordered_map<char, char>& c
         converting_letters_[from] = to;
         reverse_conv_letters_[to] = from;
     }
+    ConvertLetters();
 }
 
-
+bool caesar_cipher::CrackCipherSystem::TryToChange(std::unordered_map<char, char>& changed_chars)
+{
+    auto old_conv = converting_letters_;
+    auto perc = GetPercRecognizedWords();
+    AlterDectyptText(changed_chars);
+    if (GetPercRecognizedWords() < perc) {
+        converting_letters_ = old_conv;
+        ConvertLetters();
+        return false;
+    }
+    return true;
+}

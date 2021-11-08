@@ -12,7 +12,7 @@ namespace caesar_cipher {
 	class CrackCipherSystem
 	{
 	public:
-		CrackCipherSystem(std::filesystem::path path = "dictionary.txt");
+		explicit CrackCipherSystem(std::filesystem::path path = "dictionary.txt");
 
 		struct comp {
 			template <typename T>
@@ -44,7 +44,7 @@ namespace caesar_cipher {
 		std::unordered_map<char, char> converting_letters_;
 		std::unordered_map<char, char> reverse_conv_letters_;
 
-		std::vector<std::string> GetSortedFreqsChars(std::string& str_analyz, int len_gram) const;
+		std::vector<std::string> GetSortedFreqsNGrams(std::string& str_analyz, int len_gram) const;
 		//unused for a while
 		double GetPercRecognizedWords() const;
 		//Frequency analysis every symbol on dictionary and crypt text
@@ -56,7 +56,8 @@ namespace caesar_cipher {
 		//len - length of word, max_diff = maximum difference between words
 		void Correction(int len, int max_diff);
 
-		void AlterConvertingLetters(std::unordered_map<char, char>& changed_chars);
+		void AlterDectyptText(std::unordered_map<char, char>& changed_chars);
+
+		bool TryToChange(std::unordered_map<char, char>& changed_chars);
 	};
 } //namespace caesar_cipher
-
