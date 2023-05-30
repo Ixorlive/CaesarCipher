@@ -1,5 +1,5 @@
 # CaesarCipher
-Crypt, decrypt and crack Caesar Cipher with keyword
+Crypt, Decrypt and crack Caesar Cipher with keyword
 ## Crypt and Decrypt
 The Caesar keyword encryption system is a single-alphabetic substitution system. The peculiarity of this system is the use of the keyword to shift and change the order of characters in the substitution alphabet
 Example:
